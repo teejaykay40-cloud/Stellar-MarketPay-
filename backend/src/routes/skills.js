@@ -36,8 +36,11 @@ const router = express.Router();
 router.get("/", createRateLimiter(60, 1), async (req, res, next) => {
   try {
     const q = req.query.q;
-    if (!q || typeof q !== "string") {
-      return res.json([]);
+    if (typeof q !== "string" || !q.trim()) {
+      return res.status(400).json({
+        error: "A non-empty search query is required",
+        code: "VALIDATION_ERROR",
+      });
     }
 
     const likePattern = `%${q.trim()}%`;
