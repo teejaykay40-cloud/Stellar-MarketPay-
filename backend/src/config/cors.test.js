@@ -1,6 +1,9 @@
 "use strict";
 
 const { createCorsOptions, getAllowedOrigins } = require("./cors");
+const cors = require("cors");
+const express = require("express");
+const request = require("supertest");
 
 function checkOrigin(options, origin) {
   return new Promise((resolve) => {
@@ -53,5 +56,22 @@ describe("CORS configuration", () => {
       "https://app.example",
       "https://admin.example",
     ]);
+  });
+
+  it("allows a browser PUT preflight through the server CORS middleware", async () => {
+    const app = express();
+    app.use(cors(createCorsOptions({
+      env: { NODE_ENV: "test", ALLOWED_ORIGINS: "https://app.example" },
+    })));
+    app.put("/api/profiles/:publicKey", (req, res) => res.sendStatus(204));
+
+    const response = await request(app)
+      .options("/api/profiles/G123")
+      .set("Origin", "https://app.example")
+      .set("Access-Control-Request-Method", "PUT")
+      .set("Access-Control-Request-Headers", "authorization,content-type");
+
+    expect(response.status).toBe(204);
+    expect(response.headers["access-control-allow-methods"].split(", ")).toContain("PUT");
   });
 });
